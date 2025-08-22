@@ -83,6 +83,13 @@
             "cpf": "987.654.321-00",
             "email": "maria.santos@gmail.com",
             "telefone": "+55 21 99888-7766"
+        },
+        {
+            "id": 13,
+            "nome": "Teste Cache",
+            "cpf": "99999999999",
+            "email": "teste@cache.com",
+            "telefone": "(11) 99999-9999"
         }
     ],
     "planos": [

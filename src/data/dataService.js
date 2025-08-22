@@ -40,9 +40,103 @@ class DataService {
         return Math.max(...items.map(item => item.id)) + 1;
     }
 
+    // Pagination helper method
+    paginateResults(items, pagination = {}) {
+        const { page = 1, limit = 10, first, after, last, before } = pagination;
+
+        // For cursor-based pagination
+        if (first || after || last || before) {
+            return this.cursorPaginate(items, { first, after, last, before });
+        }
+
+        // For offset-based pagination
+        return this.offsetPaginate(items, { page, limit });
+    }
+
+    offsetPaginate(items, { page, limit }) {
+        const totalCount = items.length;
+        const totalPages = Math.ceil(totalCount / limit);
+        const currentPage = Math.max(1, Math.min(page, totalPages));
+        const offset = (currentPage - 1) * limit;
+
+        const paginatedItems = items.slice(offset, offset + limit);
+
+        return {
+            edges: paginatedItems.map((item, index) => ({
+                node: item,
+                cursor: Buffer.from(`${offset + index}`).toString('base64')
+            })),
+            pageInfo: {
+                hasNextPage: currentPage < totalPages,
+                hasPreviousPage: currentPage > 1,
+                startCursor: paginatedItems.length > 0 ? Buffer.from(`${offset}`).toString('base64') : null,
+                endCursor: paginatedItems.length > 0 ? Buffer.from(`${offset + paginatedItems.length - 1}`).toString('base64') : null,
+                totalCount,
+                currentPage,
+                totalPages
+            }
+        };
+    }
+
+    cursorPaginate(items, { first, after, last, before }) {
+        let startIndex = 0;
+        let endIndex = items.length;
+
+        // Handle after cursor
+        if (after) {
+            try {
+                const decodedAfter = parseInt(Buffer.from(after, 'base64').toString('ascii'));
+                startIndex = decodedAfter + 1;
+            } catch (e) {
+                startIndex = 0;
+            }
+        }
+
+        // Handle before cursor
+        if (before) {
+            try {
+                const decodedBefore = parseInt(Buffer.from(before, 'base64').toString('ascii'));
+                endIndex = decodedBefore;
+            } catch (e) {
+                endIndex = items.length;
+            }
+        }
+
+        // Apply first/last limits
+        if (first) {
+            endIndex = Math.min(startIndex + first, endIndex);
+        }
+        if (last) {
+            startIndex = Math.max(endIndex - last, startIndex);
+        }
+
+        const paginatedItems = items.slice(startIndex, endIndex);
+        const totalCount = items.length;
+
+        return {
+            edges: paginatedItems.map((item, index) => ({
+                node: item,
+                cursor: Buffer.from(`${startIndex + index}`).toString('base64')
+            })),
+            pageInfo: {
+                hasNextPage: endIndex < items.length,
+                hasPreviousPage: startIndex > 0,
+                startCursor: paginatedItems.length > 0 ? Buffer.from(`${startIndex}`).toString('base64') : null,
+                endCursor: paginatedItems.length > 0 ? Buffer.from(`${endIndex - 1}`).toString('base64') : null,
+                totalCount,
+                currentPage: Math.floor(startIndex / (first || 10)) + 1,
+                totalPages: Math.ceil(totalCount / (first || 10))
+            }
+        };
+    }
+
     // PESSOAS methods
     getAllPessoas() {
         return this.data.pessoas;
+    }
+
+    getAllPessoasPaginated(pagination) {
+        return this.paginateResults(this.data.pessoas, pagination);
     }
 
     getPessoaById(id) {
@@ -95,6 +189,10 @@ class DataService {
         return this.data.planos;
     }
 
+    getAllPlanosPaginated(pagination) {
+        return this.paginateResults(this.data.planos, pagination);
+    }
+
     getPlanoById(id) {
         return this.data.planos.find(plano => plano.id == id);
     }
@@ -107,12 +205,30 @@ class DataService {
         });
     }
 
+    getPlanosByValorCreditoPaginated(min, max, pagination) {
+        const filteredPlanos = this.data.planos.filter(plano => {
+            if (min !== undefined && plano.valor_credito < min) return false;
+            if (max !== undefined && plano.valor_credito > max) return false;
+            return true;
+        });
+        return this.paginateResults(filteredPlanos, pagination);
+    }
+
     getPlanosByParcelas(min, max) {
         return this.data.planos.filter(plano => {
             if (min !== undefined && plano.parcelas < min) return false;
             if (max !== undefined && plano.parcelas > max) return false;
             return true;
         });
+    }
+
+    getPlanosByParcelasPaginated(min, max, pagination) {
+        const filteredPlanos = this.data.planos.filter(plano => {
+            if (min !== undefined && plano.parcelas < min) return false;
+            if (max !== undefined && plano.parcelas > max) return false;
+            return true;
+        });
+        return this.paginateResults(filteredPlanos, pagination);
     }
 
     createPlano(planoData) {
@@ -153,6 +269,10 @@ class DataService {
         return this.data.planos_contratados;
     }
 
+    getAllPlanosContratadosPaginated(pagination) {
+        return this.paginateResults(this.data.planos_contratados, pagination);
+    }
+
     getPlanoContratadoById(id) {
         return this.data.planos_contratados.find(pc => pc.id == id);
     }
@@ -161,12 +281,27 @@ class DataService {
         return this.data.planos_contratados.filter(pc => pc.status.toUpperCase() === status.toUpperCase());
     }
 
+    getPlanosContratadosByStatusPaginated(status, pagination) {
+        const filteredPlanos = this.data.planos_contratados.filter(pc => pc.status.toUpperCase() === status.toUpperCase());
+        return this.paginateResults(filteredPlanos, pagination);
+    }
+
     getPlanosContratadosByPessoa(pessoaId) {
         return this.data.planos_contratados.filter(pc => pc.pessoa_id == pessoaId);
     }
 
+    getPlanosContratadosByPessoaPaginated(pessoaId, pagination) {
+        const filteredPlanos = this.data.planos_contratados.filter(pc => pc.pessoa_id == pessoaId);
+        return this.paginateResults(filteredPlanos, pagination);
+    }
+
     getPlanosContratadosByPlano(planoId) {
         return this.data.planos_contratados.filter(pc => pc.plano_id == planoId);
+    }
+
+    getPlanosContratadosByPlanoPaginated(planoId, pagination) {
+        const filteredPlanos = this.data.planos_contratados.filter(pc => pc.plano_id == planoId);
+        return this.paginateResults(filteredPlanos, pagination);
     }
 
     contratarPlano(contratoData) {

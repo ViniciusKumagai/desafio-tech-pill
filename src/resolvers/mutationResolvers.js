@@ -1,14 +1,26 @@
 import { dataService } from '../data/dataService.js';
+import { cacheService } from '../cache/cacheService.js';
+
+// Helper function para invalidar cache após mutations
+const withCacheInvalidation = (mutationFn, entityType) => {
+    return async (...args) => {
+        const result = await mutationFn(...args);
+        // Invalidar cache da entidade modificada
+        cacheService.invalidateEntityCache(entityType);
+        console.log(`🗑️ Cache invalidated for entity: ${entityType}`);
+        return result;
+    };
+};
 
 export const mutationResolvers = {
     Mutation: {
         // Pessoas mutations
-        criarPessoa: (_, { input }) => dataService.createPessoa(input),
-        atualizarPessoa: (_, { id, input }) => dataService.updatePessoa(id, input),
-        deletarPessoa: (_, { id }) => dataService.deletePessoa(id),
+        criarPessoa: withCacheInvalidation((_, { input }) => dataService.createPessoa(input), 'pessoas'),
+        atualizarPessoa: withCacheInvalidation((_, { id, input }) => dataService.updatePessoa(id, input), 'pessoas'),
+        deletarPessoa: withCacheInvalidation((_, { id }) => dataService.deletePessoa(id), 'pessoas'),
 
         // Planos mutations
-        criarPlano: (_, { input }) => {
+        criarPlano: withCacheInvalidation((_, { input }) => {
             // Convert GraphQL field names to database field names
             const planoData = {
                 nome: input.nome,
@@ -17,9 +29,9 @@ export const mutationResolvers = {
                 taxa_adm_percentual: input.taxaAdmPercentual
             };
             return dataService.createPlano(planoData);
-        },
+        }, 'planos'),
 
-        atualizarPlano: (_, { id, input }) => {
+        atualizarPlano: withCacheInvalidation((_, { id, input }) => {
             // Convert GraphQL field names to database field names
             const updateData = {};
             if (input.nome !== undefined) updateData.nome = input.nome;
@@ -28,12 +40,12 @@ export const mutationResolvers = {
             if (input.taxaAdmPercentual !== undefined) updateData.taxa_adm_percentual = input.taxaAdmPercentual;
 
             return dataService.updatePlano(id, updateData);
-        },
+        }, 'planos'),
 
-        deletarPlano: (_, { id }) => dataService.deletePlano(id),
+        deletarPlano: withCacheInvalidation((_, { id }) => dataService.deletePlano(id), 'planos'),
 
         // Planos Contratados mutations
-        contratarPlano: (_, { input }) => {
+        contratarPlano: withCacheInvalidation((_, { input }) => {
             // Convert GraphQL field names to database field names
             const contratoData = {
                 pessoa_id: input.pessoaId,
@@ -41,10 +53,10 @@ export const mutationResolvers = {
                 data_contratacao: input.dataContratacao
             };
             return dataService.contratarPlano(contratoData);
-        },
+        }, 'planosContratados'),
 
-        atualizarStatusPlano: (_, { id, status }) => dataService.updateStatusPlano(id, status),
-        pagarParcela: (_, { id }) => dataService.pagarParcela(id),
-        cancelarPlano: (_, { id }) => dataService.cancelarPlano(id),
+        atualizarStatusPlano: withCacheInvalidation((_, { id, status }) => dataService.updateStatusPlano(id, status), 'planosContratados'),
+        pagarParcela: withCacheInvalidation((_, { id }) => dataService.pagarParcela(id), 'planosContratados'),
+        cancelarPlano: withCacheInvalidation((_, { id }) => dataService.cancelarPlano(id), 'planosContratados'),
     },
 }; 

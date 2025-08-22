@@ -35,25 +35,75 @@ type PlanoContratado {
   progressoPagamento: Float!
 }
 
+# Pagination Types
+type PageInfo {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+  endCursor: String
+  totalCount: Int!
+  currentPage: Int!
+  totalPages: Int!
+}
+
+type PessoaConnection {
+  edges: [PessoaEdge!]!
+  pageInfo: PageInfo!
+}
+
+type PessoaEdge {
+  node: Pessoa!
+  cursor: String!
+}
+
+type PlanoConnection {
+  edges: [PlanoEdge!]!
+  pageInfo: PageInfo!
+}
+
+type PlanoEdge {
+  node: Plano!
+  cursor: String!
+}
+
+type PlanoContratadoConnection {
+  edges: [PlanoContratadoEdge!]!
+  pageInfo: PageInfo!
+}
+
+type PlanoContratadoEdge {
+  node: PlanoContratado!
+  cursor: String!
+}
+
+input PaginationInput {
+  first: Int
+  after: String
+  last: Int
+  before: String
+  page: Int
+  limit: Int = 10
+}
+
 type Query {
   # Pessoas
-  pessoas: [Pessoa!]!
+  pessoas(pagination: PaginationInput): PessoaConnection!
   pessoa(id: ID!): Pessoa
   pessoaPorCpf(cpf: String!): Pessoa
   pessoaPorEmail(email: String!): Pessoa
   
   # Planos
-  planos: [Plano!]!
+  planos(pagination: PaginationInput): PlanoConnection!
   plano(id: ID!): Plano
-  planosPorValorCredito(min: Float, max: Float): [Plano!]!
-  planosPorParcelas(min: Int, max: Int): [Plano!]!
+  planosPorValorCredito(min: Float, max: Float, pagination: PaginationInput): PlanoConnection!
+  planosPorParcelas(min: Int, max: Int, pagination: PaginationInput): PlanoConnection!
   
   # Planos Contratados
-  planosContratados: [PlanoContratado!]!
+  planosContratados(pagination: PaginationInput): PlanoContratadoConnection!
   planoContratado(id: ID!): PlanoContratado
-  planosContratadosPorStatus(status: StatusPlano!): [PlanoContratado!]!
-  planosContratadosPorPessoa(pessoaId: ID!): [PlanoContratado!]!
-  planosContratadosPorPlano(planoId: ID!): [PlanoContratado!]!
+  planosContratadosPorStatus(status: StatusPlano!, pagination: PaginationInput): PlanoContratadoConnection!
+  planosContratadosPorPessoa(pessoaId: ID!, pagination: PaginationInput): PlanoContratadoConnection!
+  planosContratadosPorPlano(planoId: ID!, pagination: PaginationInput): PlanoContratadoConnection!
   
   # Estatísticas
   estatisticasGerais: EstatisticasGerais!

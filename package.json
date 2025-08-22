@@ -19,8 +19,13 @@
     "license": "MIT",
     "dependencies": {
         "@apollo/server": "^4.10.0",
+        "cors": "^2.8.5",
+        "express": "^5.1.0",
+        "express-rate-limit": "^8.0.1",
         "graphql": "^16.8.1",
-        "graphql-tag": "^2.12.6"
+        "graphql-tag": "^2.12.6",
+        "helmet": "^8.1.0",
+        "node-cache": "^5.1.2"
     },
     "devDependencies": {
         "nodemon": "^3.0.2"

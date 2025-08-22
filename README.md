@@ -49,18 +49,59 @@ A GraphQL API for managing consortium data including people, plans, and contract
 - **Comprehensive Queries**: Multiple ways to filter and search data
 - **Full CRUD Operations**: Create, read, update, and delete for all entities
 - **Statistics**: Built-in analytics for dashboard purposes
+- **🗃️ Pagination**: Cursor-based and offset-based pagination for all list queries
+- **🗄️ Cache System**: Intelligent caching with automatic invalidation
+- **🚫 Rate Limiting**: Multiple layers of request limiting for security and performance
+- **📊 Monitoring**: Health checks and real-time metrics
 
 ## Example Queries
 
-### 1. Get All People
+### 1. Get All People (with Pagination)
 ```graphql
 query {
-  pessoas {
-    id
-    nome
-    cpf
-    email
-    telefone
+  pessoas(pagination: { page: 1, limit: 10 }) {
+    edges {
+      node {
+        id
+        nome
+        cpf
+        email
+        telefone
+      }
+      cursor
+    }
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      totalCount
+      currentPage
+      totalPages
+      startCursor
+      endCursor
+    }
+  }
+}
+```
+
+### 1b. Get People with Cursor-based Pagination
+```graphql
+query {
+  pessoas(pagination: { first: 5, after: "cursor_value" }) {
+    edges {
+      node {
+        id
+        nome
+        email
+      }
+      cursor
+    }
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+      totalCount
+    }
   }
 }
 ```
@@ -86,15 +127,29 @@ query {
 }
 ```
 
-### 3. Get Plans with Credit Value Filter
+### 3. Get Plans with Credit Value Filter (with Pagination)
 ```graphql
 query {
-  planosPorValorCredito(min: 50000, max: 200000) {
-    id
-    nome
-    valorCredito
-    parcelas
-    taxaAdmPercentual
+  planosPorValorCredito(
+    min: 50000, 
+    max: 200000,
+    pagination: { page: 1, limit: 5 }
+  ) {
+    edges {
+      node {
+        id
+        nome
+        valorCredito
+        parcelas
+        taxaAdmPercentual
+      }
+      cursor
+    }
+    pageInfo {
+      hasNextPage
+      totalCount
+      currentPage
+    }
   }
 }
 ```
@@ -223,6 +278,65 @@ mutation {
 }
 ```
 
+## 🚀 Performance & Security Features
+
+### 🗄️ Caching System
+The API implements intelligent caching with automatic invalidation:
+
+- **Static Cache**: 5-minute TTL for individual entity queries
+- **Pagination Cache**: 2-minute TTL for paginated results
+- **Auto-invalidation**: Cache is cleared when data is modified via mutations
+
+#### Cache Headers
+```bash
+# First request - Cache Miss
+📋 Cache miss for: pessoas:{"pagination":{"page":1,"limit":10}}
+
+# Second request - Cache Hit  
+📋 Cache hit for: pessoas:{"pagination":{"page":1,"limit":10}}
+```
+
+### 🚫 Rate Limiting
+Multiple layers of protection:
+
+1. **General Limit**: 100 requests per IP per 15 minutes
+2. **Mutation Limit**: 20 mutations per IP per 5 minutes  
+3. **Complex Query Limit**: 50 complex queries per IP per 10 minutes
+4. **Query Complexity Analysis**: Blocks overly complex queries (max complexity: 30)
+
+#### Rate Limit Response Headers
+```http
+RateLimit-Limit: 100
+RateLimit-Remaining: 95
+RateLimit-Reset: 1640995200
+```
+
+### 📊 Monitoring Endpoints
+
+#### Health Check
+```bash
+GET /health
+```
+Returns server status, cache statistics, and memory usage.
+
+#### Cache Statistics (Development)
+```bash
+GET /cache/stats
+```
+Returns detailed cache hit/miss statistics.
+
+#### Clear Cache (Development)
+```bash
+POST /cache/clear
+```
+Manually clears all cache entries.
+
+### 🛡️ Security Features
+- **Helmet**: Security headers
+- **CORS**: Configurable cross-origin resource sharing
+- **Query Complexity Analysis**: Prevents resource-intensive queries
+- **Request Size Limiting**: 10MB max request size
+
 ## Data Model
 
 ### Database Fields vs GraphQL Fields
@@ -250,8 +364,13 @@ The API automatically converts between database field names (snake_case) and Gra
 
 - **Apollo Server 4**: GraphQL server implementation
 - **GraphQL**: Query language and runtime
+- **Express.js**: Web application framework
 - **Node.js**: JavaScript runtime
 - **ES Modules**: Modern JavaScript module system
+- **express-rate-limit**: Rate limiting middleware
+- **node-cache**: In-memory caching solution
+- **helmet**: Security middleware for HTTP headers
+- **cors**: Cross-Origin Resource Sharing support
 
 ## Next Steps
 
@@ -259,7 +378,13 @@ The API automatically converts between database field names (snake_case) and Gra
 2. **Authentication**: Add user authentication and authorization
 3. **Validation**: Add input validation and error handling
 4. **Testing**: Add unit and integration tests
-5. **Caching**: Implement DataLoader for efficient data fetching
+5. **Advanced Caching**: Implement Redis for distributed caching
 6. **Subscriptions**: Add real-time updates with GraphQL subscriptions
 7. **Docker**: Containerize the application
-8. **CI/CD**: Set up continuous integration and deployment 
+8. **CI/CD**: Set up continuous integration and deployment
+9. **Observability**: Add structured logging and metrics (Prometheus, Grafana)
+10. **API Versioning**: Implement GraphQL schema versioning strategy
+
+## 📋 Additional Documentation
+
+- [**Cache & Rate Limiting Guide**](./CACHE_AND_RATE_LIMIT.md) - Detailed documentation about performance and security features 
