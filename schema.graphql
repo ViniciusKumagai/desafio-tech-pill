@@ -1,0 +1,126 @@
+type Pessoa {
+  id: ID!
+  nome: String!
+  cpf: String!
+  email: String!
+  telefone: String!
+  planosContratados: [PlanoContratado!]!
+}
+
+type Plano {
+  id: ID!
+  nome: String!
+  valorCredito: Float!
+  parcelas: Int!
+  taxaAdmPercentual: Float!
+  planosContratados: [PlanoContratado!]!
+}
+
+enum StatusPlano {
+  ATIVO
+  CONTEMPLADO
+  INADIMPLENTE
+  QUITADO
+}
+
+type PlanoContratado {
+  id: ID!
+  pessoa: Pessoa!
+  plano: Plano!
+  dataContratacao: String!
+  status: StatusPlano!
+  parcelasPagas: Int!
+  parcelasRestantes: Int!
+  valorParcela: Float!
+  progressoPagamento: Float!
+}
+
+type Query {
+  # Pessoas
+  pessoas: [Pessoa!]!
+  pessoa(id: ID!): Pessoa
+  pessoaPorCpf(cpf: String!): Pessoa
+  pessoaPorEmail(email: String!): Pessoa
+  
+  # Planos
+  planos: [Plano!]!
+  plano(id: ID!): Plano
+  planosPorValorCredito(min: Float, max: Float): [Plano!]!
+  planosPorParcelas(min: Int, max: Int): [Plano!]!
+  
+  # Planos Contratados
+  planosContratados: [PlanoContratado!]!
+  planoContratado(id: ID!): PlanoContratado
+  planosContratadosPorStatus(status: StatusPlano!): [PlanoContratado!]!
+  planosContratadosPorPessoa(pessoaId: ID!): [PlanoContratado!]!
+  planosContratadosPorPlano(planoId: ID!): [PlanoContratado!]!
+  
+  # Estatísticas
+  estatisticasGerais: EstatisticasGerais!
+}
+
+type Mutation {
+  # Pessoas
+  criarPessoa(input: CriarPessoaInput!): Pessoa!
+  atualizarPessoa(id: ID!, input: AtualizarPessoaInput!): Pessoa!
+  deletarPessoa(id: ID!): Boolean!
+  
+  # Planos
+  criarPlano(input: CriarPlanoInput!): Plano!
+  atualizarPlano(id: ID!, input: AtualizarPlanoInput!): Plano!
+  deletarPlano(id: ID!): Boolean!
+  
+  # Planos Contratados
+  contratarPlano(input: ContratarPlanoInput!): PlanoContratado!
+  atualizarStatusPlano(id: ID!, status: StatusPlano!): PlanoContratado!
+  pagarParcela(id: ID!): PlanoContratado!
+  cancelarPlano(id: ID!): Boolean!
+}
+
+# Input Types
+input CriarPessoaInput {
+  nome: String!
+  cpf: String!
+  email: String!
+  telefone: String!
+}
+
+input AtualizarPessoaInput {
+  nome: String
+  cpf: String
+  email: String
+  telefone: String
+}
+
+input CriarPlanoInput {
+  nome: String!
+  valorCredito: Float!
+  parcelas: Int!
+  taxaAdmPercentual: Float!
+}
+
+input AtualizarPlanoInput {
+  nome: String
+  valorCredito: Float
+  parcelas: Int
+  taxaAdmPercentual: Float
+}
+
+input ContratarPlanoInput {
+  pessoaId: ID!
+  planoId: ID!
+  dataContratacao: String!
+}
+
+# Statistics Type
+type EstatisticasGerais {
+  totalPessoas: Int!
+  totalPlanos: Int!
+  totalPlanosContratados: Int!
+  planosAtivos: Int!
+  planosContemplados: Int!
+  planosInadimplentes: Int!
+  planosQuitados: Int!
+  valorTotalCredito: Float!
+  valorTotalArrecadado: Float!
+} 
