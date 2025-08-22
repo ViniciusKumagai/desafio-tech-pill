@@ -1,207 +1,164 @@
-# Consórcio GraphQL API
+# API GraphQL para Sistema de Consórcio
 
-A GraphQL API for managing consortium data including people, plans, and contracted plans.
+Este projeto é uma API GraphQL que gerencia um sistema de consórcio, onde pessoas podem contratar planos e fazer pagamentos.
 
-## Project Structure
+## O que o sistema faz
 
-```
-├── schema.graphql          # GraphQL schema definition
-├── package.json           # Project dependencies
-├── mock_db.json          # JSON database file
-├── src/
-│   ├── server.js         # Main Apollo Server setup
-│   ├── typeDefs.js       # GraphQL type definitions loader
-│   ├── data/
-│   │   └── dataService.js # Data access layer
-│   └── resolvers/
-│       ├── index.js      # Main resolver exports
-│       ├── queryResolvers.js    # Query resolvers
-│       ├── mutationResolvers.js # Mutation resolvers
-│       └── typeResolvers.js     # Type/relationship resolvers
+- **Cadastra pessoas** com seus dados pessoais
+- **Gerencia planos de consórcio** com valores e parcelas
+- **Controla contratos** entre pessoas e planos
+- **Acompanha pagamentos** e status dos contratos
+- **Mostra estatísticas** do sistema
+
+## Como usar
+
+### 1. Instalar dependências
+```bash
+npm install
 ```
 
-## Setup Instructions
+### 2. Iniciar o servidor
+```bash
+npm start
+```
 
-1. **Install Dependencies**
-   ```bash
-   npm install
-   ```
+### 3. Acessar a interface
+Abra o navegador em: `http://localhost:4000/graphql`
 
-2. **Start the Server**
-   ```bash
-   npm run dev
-   ```
+## Estrutura do Código
 
-3. **Access GraphQL Playground**
-   Open your browser and go to: `http://localhost:4000`
+### 📁 Arquivos principais
 
-## GraphQL Schema Overview
+- **`src/server.js`** - Inicia o servidor e configura segurança
+- **`src/typeDefs.js`** - Carrega as definições do GraphQL
+- **`schema.graphql`** - Define os tipos de dados e operações
+- **`mock_db.json`** - Banco de dados simulado em JSON
 
-### Types
-- **Pessoa**: Person entity with basic information
-- **Plano**: Consortium plan with credit value, installments, and admin rate
-- **PlanoContratado**: Contracted plan linking a person to a plan with payment status
-- **StatusPlano**: Enum for plan status (ATIVO, CONTEMPLADO, INADIMPLENTE, QUITADO)
+### 📁 Pasta `src/data/`
 
-### Key Features
-- **Relationships**: Query related data across entities
-- **Computed Fields**: Automatic calculation of remaining installments, installment values, and payment progress
-- **Comprehensive Queries**: Multiple ways to filter and search data
-- **Full CRUD Operations**: Create, read, update, and delete for all entities
-- **Statistics**: Built-in analytics for dashboard purposes
-- **🗃️ Pagination**: Cursor-based and offset-based pagination for all list queries
-- **🗄️ Cache System**: Intelligent caching with automatic invalidation
-- **🚫 Rate Limiting**: Multiple layers of request limiting for security and performance
-- **📊 Monitoring**: Health checks and real-time metrics
+- **`dataService.js`** - Faz todas as operações com os dados (buscar, criar, alterar, deletar)
 
-## Example Queries
+### 📁 Pasta `src/resolvers/`
 
-### 1. Get All People (with Pagination)
+- **`queryResolvers.js`** - Funções que buscam dados
+- **`mutationResolvers.js`** - Funções que modificam dados
+- **`typeResolvers.js`** - Conecta dados relacionados
+- **`index.js`** - Junta todos os resolvers
+
+### 📁 Pasta `src/cache/`
+
+- **`cacheService.js`** - Sistema que guarda resultados para responder mais rápido
+
+### 📁 Pasta `src/middleware/`
+
+- **`rateLimiter.js`** - Controla quantas requisições cada usuário pode fazer
+
+## Funcionalidades Implementadas
+
+### 🗃️ Paginação
+- **O que faz**: Divide listas grandes em páginas menores
+- **Por que**: Evita carregar muitos dados de uma vez
+- **Como usar**: Adicione `pagination: { page: 1, limit: 10 }` nas consultas
+
+### 🗄️ Cache (Memória Temporária)
+- **O que faz**: Guarda resultados de consultas por alguns minutos
+- **Por que**: Faz o sistema responder mais rápido
+- **Como funciona**: 
+  - Primeira consulta = busca no banco
+  - Segunda consulta = pega da memória (mais rápido)
+
+### 🚫 Limitação de Requests
+- **O que faz**: Limita quantas consultas cada IP pode fazer
+- **Por que**: Protege o servidor de sobrecarga
+- **Limites atuais**:
+  - 100 consultas gerais por 15 minutos
+  - 20 modificações de dados por 5 minutos
+  - 50 consultas complexas por 10 minutos
+
+### 🛡️ Segurança
+- **Headers de segurança**: Protege contra ataques comuns
+- **CORS**: Controla quais sites podem usar a API
+- **Análise de complexidade**: Bloqueia consultas muito pesadas
+
+## Tipos de Dados
+
+### Pessoa
+```
+- id: Identificador único
+- nome: Nome completo
+- cpf: CPF da pessoa
+- email: Email de contato
+- telefone: Telefone de contato
+```
+
+### Plano
+```
+- id: Identificador único
+- nome: Nome do plano
+- valorCredito: Valor total do crédito
+- parcelas: Número de parcelas
+- taxaAdmPercentual: Taxa administrativa
+```
+
+### PlanoContratado
+```
+- id: Identificador único
+- pessoa: Pessoa que contratou
+- plano: Plano contratado
+- dataContratacao: Data da contratação
+- status: ATIVO, CONTEMPLADO, INADIMPLENTE, QUITADO
+- parcelasPagas: Quantas parcelas já foram pagas
+- valorParcela: Valor de cada parcela (calculado automaticamente)
+```
+
+## Exemplos de Uso
+
+### Buscar todas as pessoas (com paginação)
 ```graphql
 query {
-  pessoas(pagination: { page: 1, limit: 10 }) {
+  pessoas(pagination: { page: 1, limit: 5 }) {
     edges {
       node {
         id
         nome
-        cpf
         email
-        telefone
       }
-      cursor
     }
     pageInfo {
-      hasNextPage
-      hasPreviousPage
       totalCount
+      hasNextPage
       currentPage
-      totalPages
-      startCursor
-      endCursor
     }
   }
 }
 ```
 
-### 1b. Get People with Cursor-based Pagination
-```graphql
-query {
-  pessoas(pagination: { first: 5, after: "cursor_value" }) {
-    edges {
-      node {
-        id
-        nome
-        email
-      }
-      cursor
-    }
-    pageInfo {
-      hasNextPage
-      hasPreviousPage
-      startCursor
-      endCursor
-      totalCount
-    }
-  }
-}
-```
-
-### 2. Get Person with Their Contracted Plans
+### Buscar uma pessoa específica
 ```graphql
 query {
   pessoa(id: "1") {
     nome
     email
     planosContratados {
-      id
       status
       parcelasPagas
-      progressoPagamento
       plano {
         nome
         valorCredito
-        parcelas
       }
     }
   }
 }
 ```
 
-### 3. Get Plans with Credit Value Filter (with Pagination)
-```graphql
-query {
-  planosPorValorCredito(
-    min: 50000, 
-    max: 200000,
-    pagination: { page: 1, limit: 5 }
-  ) {
-    edges {
-      node {
-        id
-        nome
-        valorCredito
-        parcelas
-        taxaAdmPercentual
-      }
-      cursor
-    }
-    pageInfo {
-      hasNextPage
-      totalCount
-      currentPage
-    }
-  }
-}
-```
-
-### 4. Get Contracted Plans by Status
-```graphql
-query {
-  planosContratadosPorStatus(status: ATIVO) {
-    id
-    pessoa {
-      nome
-      email
-    }
-    plano {
-      nome
-      valorCredito
-    }
-    parcelasPagas
-    parcelasRestantes
-    valorParcela
-    progressoPagamento
-  }
-}
-```
-
-### 5. Get Statistics
-```graphql
-query {
-  estatisticasGerais {
-    totalPessoas
-    totalPlanos
-    totalPlanosContratados
-    planosAtivos
-    planosContemplados
-    planosInadimplentes
-    planosQuitados
-    valorTotalCredito
-    valorTotalArrecadado
-  }
-}
-```
-
-## Example Mutations
-
-### 1. Create a New Person
+### Criar uma nova pessoa
 ```graphql
 mutation {
   criarPessoa(input: {
-    nome: "Maria Santos"
+    nome: "João Silva"
     cpf: "123.456.789-01"
-    email: "maria.santos@example.com"
-    telefone: "+55 11 98765-4321"
+    email: "joao@email.com"
+    telefone: "(11) 99999-9999"
   }) {
     id
     nome
@@ -210,25 +167,7 @@ mutation {
 }
 ```
 
-### 2. Create a New Plan
-```graphql
-mutation {
-  criarPlano(input: {
-    nome: "Consórcio Novo Auto"
-    valorCredito: 75000
-    parcelas: 60
-    taxaAdmPercentual: 16
-  }) {
-    id
-    nome
-    valorCredito
-    parcelas
-    taxaAdmPercentual
-  }
-}
-```
-
-### 3. Contract a Plan
+### Contratar um plano
 ```graphql
 mutation {
   contratarPlano(input: {
@@ -237,23 +176,17 @@ mutation {
     dataContratacao: "2024-01-15"
   }) {
     id
-    pessoa {
-      nome
-    }
-    plano {
-      nome
-    }
+    pessoa { nome }
+    plano { nome }
     status
-    dataContratacao
   }
 }
 ```
 
-### 4. Pay an Installment
+### Pagar uma parcela
 ```graphql
 mutation {
   pagarParcela(id: "1001") {
-    id
     parcelasPagas
     parcelasRestantes
     progressoPagamento
@@ -262,129 +195,62 @@ mutation {
 }
 ```
 
-### 5. Update Plan Status
+### Ver estatísticas gerais
 ```graphql
-mutation {
-  atualizarStatusPlano(id: "1001", status: CONTEMPLADO) {
-    id
-    status
-    pessoa {
-      nome
-    }
-    plano {
-      nome
-    }
+query {
+  estatisticasGerais {
+    totalPessoas
+    totalPlanos
+    totalPlanosContratados
+    planosAtivos
+    valorTotalCredito
+    valorTotalArrecadado
   }
 }
 ```
 
-## 🚀 Performance & Security Features
+## Monitoramento
 
-### 🗄️ Caching System
-The API implements intelligent caching with automatic invalidation:
-
-- **Static Cache**: 5-minute TTL for individual entity queries
-- **Pagination Cache**: 2-minute TTL for paginated results
-- **Auto-invalidation**: Cache is cleared when data is modified via mutations
-
-#### Cache Headers
-```bash
-# First request - Cache Miss
-📋 Cache miss for: pessoas:{"pagination":{"page":1,"limit":10}}
-
-# Second request - Cache Hit  
-📋 Cache hit for: pessoas:{"pagination":{"page":1,"limit":10}}
+### Verificar saúde do servidor
 ```
-
-### 🚫 Rate Limiting
-Multiple layers of protection:
-
-1. **General Limit**: 100 requests per IP per 15 minutes
-2. **Mutation Limit**: 20 mutations per IP per 5 minutes  
-3. **Complex Query Limit**: 50 complex queries per IP per 10 minutes
-4. **Query Complexity Analysis**: Blocks overly complex queries (max complexity: 30)
-
-#### Rate Limit Response Headers
-```http
-RateLimit-Limit: 100
-RateLimit-Remaining: 95
-RateLimit-Reset: 1640995200
-```
-
-### 📊 Monitoring Endpoints
-
-#### Health Check
-```bash
 GET /health
 ```
-Returns server status, cache statistics, and memory usage.
+Mostra se o servidor está funcionando e estatísticas de performance.
 
-#### Cache Statistics (Development)
-```bash
+### Ver estatísticas do cache
+```
 GET /cache/stats
 ```
-Returns detailed cache hit/miss statistics.
+Mostra quantas consultas foram atendidas pelo cache.
 
-#### Clear Cache (Development)
-```bash
+### Limpar cache
+```
 POST /cache/clear
 ```
-Manually clears all cache entries.
+Remove todos os dados do cache (só em desenvolvimento).
 
-### 🛡️ Security Features
-- **Helmet**: Security headers
-- **CORS**: Configurable cross-origin resource sharing
-- **Query Complexity Analysis**: Prevents resource-intensive queries
-- **Request Size Limiting**: 10MB max request size
+## Como o Sistema Funciona
 
-## Data Model
+1. **Cliente faz uma consulta** → API recebe a requisição
+2. **Verifica rate limiting** → Se passou do limite, bloqueia
+3. **Analisa complexidade** → Se muito complexa, bloqueia
+4. **Procura no cache** → Se encontrar, retorna rapidamente
+5. **Se não estiver no cache** → Busca no banco de dados
+6. **Salva no cache** → Para próximas consultas serem mais rápidas
+7. **Retorna resultado** → Cliente recebe os dados
 
-### Database Fields vs GraphQL Fields
-The API automatically converts between database field names (snake_case) and GraphQL field names (camelCase):
+## Tecnologias Usadas
 
-- `valor_credito` ↔ `valorCredito`
-- `taxa_adm_percentual` ↔ `taxaAdmPercentual`
-- `data_contratacao` ↔ `dataContratacao`
-- `parcelas_pagas` ↔ `parcelasPagas`
-- `pessoa_id` ↔ `pessoaId`
-- `plano_id` ↔ `planoId`
+- **Node.js**: Ambiente de execução JavaScript
+- **Apollo Server**: Servidor GraphQL
+- **Express.js**: Framework web
+- **GraphQL**: Linguagem de consulta
+- **node-cache**: Sistema de cache em memória
+- **express-rate-limit**: Controle de limite de requisições
 
-### Computed Fields
-- `parcelasRestantes`: Calculated as `total_parcelas - parcelas_pagas`
-- `valorParcela`: Calculated as `(valor_credito * (1 + taxa_adm_percentual/100)) / parcelas`
-- `progressoPagamento`: Calculated as `(parcelas_pagas / total_parcelas) * 100`
+## Comandos Disponíveis
 
-## Development Commands
+- `npm start` - Inicia o servidor
+- `npm run dev` - Inicia com reinicialização automática
 
-- `npm start`: Start the production server
-- `npm run dev`: Start the development server with auto-reload
-- `npm test`: Run tests (placeholder for now)
-
-## Technologies Used
-
-- **Apollo Server 4**: GraphQL server implementation
-- **GraphQL**: Query language and runtime
-- **Express.js**: Web application framework
-- **Node.js**: JavaScript runtime
-- **ES Modules**: Modern JavaScript module system
-- **express-rate-limit**: Rate limiting middleware
-- **node-cache**: In-memory caching solution
-- **helmet**: Security middleware for HTTP headers
-- **cors**: Cross-Origin Resource Sharing support
-
-## Next Steps
-
-1. **Database Integration**: Replace JSON file with a real database (PostgreSQL, MongoDB, etc.)
-2. **Authentication**: Add user authentication and authorization
-3. **Validation**: Add input validation and error handling
-4. **Testing**: Add unit and integration tests
-5. **Advanced Caching**: Implement Redis for distributed caching
-6. **Subscriptions**: Add real-time updates with GraphQL subscriptions
-7. **Docker**: Containerize the application
-8. **CI/CD**: Set up continuous integration and deployment
-9. **Observability**: Add structured logging and metrics (Prometheus, Grafana)
-10. **API Versioning**: Implement GraphQL schema versioning strategy
-
-## 📋 Additional Documentation
-
-- [**Cache & Rate Limiting Guide**](./CACHE_AND_RATE_LIMIT.md) - Detailed documentation about performance and security features 
+O sistema está pronto para uso e inclui todas as funcionalidades de um sistema de consórcio básico com performance otimizada e segurança implementada. 
